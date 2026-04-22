@@ -1,0 +1,161 @@
+@page "/orders"
+@attribute [Authorize]
+@inject IOrderApiService OrderService
+@inject NavigationManager Navigation
+
+<PageTitle>Meus Pedidos - Good Hamburger</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>🍔 Meus Pedidos</h2>
+        <a href="/orders/create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Novo Pedido
+        </a>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-8">
+                    <input type="number" class="form-control" placeholder="Buscar por número do pedido..." @bind="_searchId" @bind:event="oninput" />
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary w-100" @onclick="SearchOrder">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+            @if (_searchError != null)
+            {
+                <div class="alert alert-warning mt-3 mb-0">
+                    @_searchError
+                </div>
+            }
+        </div>
+    </div>
+    
+    @if (_isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2">Carregando pedidos...</p>
+        </div>
+    }
+    else if (!_orders.Any())
+    {
+        <div class="alert alert-info text-center" role="alert">
+            <h5>Nenhum pedido encontrado</h5>
+            <p class="mb-0">Faça seu primeiro pedido clicando no botão "Novo Pedido" acima!</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var order in _orders)
+            {
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Pedido #@order.Id</h5>
+                            <p class="card-text text-muted small">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+                            
+                            <ul class="list-unstyled">
+                                @foreach (var item in order.Items)
+                                {
+                                    <li>• @item.MenuItemName - @item.Price.ToString("C2")</li>
+                                }
+                            </ul>
+                            
+                            <hr />
+                            
+                            <div class="mb-2">
+                                <strong>Subtotal:</strong> @order.SubTotal.ToString("C2")
+                            </div>
+                            
+                            @if (order.DiscountPercentage > 0)
+                            {
+                                <div class="mb-2 text-success">
+                                    <strong>Desconto (@((order.DiscountPercentage * 100).ToString("0"))%):</strong> -@order.DiscountAmount.ToString("C2")
+                                </div>
+                            }
+                            
+                            <div class="mb-3">
+                                <strong>Total:</strong> <span class="text-primary fs-5">@order.Total.ToString("C2")</span>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <a href="/orders/details/@order.Id" class="btn btn-sm btn-outline-primary flex-fill">Detalhes</a>
+                                <a href="/orders/edit/@order.Id" class="btn btn-sm btn-outline-secondary flex-fill">Editar</a>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteOrder(order.Id)">Excluir</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<OrderResponseDto> _orders = new();
+    private bool _isLoading = true;
+    private int? _searchId;
+    private string? _searchError;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+    }
+    
+    private async Task LoadOrders()
+    {
+        _isLoading = true;
+        _searchError = null;
+        _orders = await OrderService.GetAllOrdersAsync();
+        _isLoading = false;
+    }
+    
+    private async Task SearchOrder()
+    {
+        if (_searchId == null || _searchId <= 0)
+        {
+            _searchError = "Digite um número de pedido válido";
+            await LoadOrders();
+            return;
+        }
+        
+        _isLoading = true;
+        _searchError = null;
+        
+        var order = await OrderService.GetOrderByIdAsync(_searchId.Value);
+        
+        if (order == null)
+        {
+            _searchError = $"Pedido #{_searchId} não encontrado";
+            _orders = new();
+        }
+        else
+        {
+            _orders = new List<OrderResponseDto> { order };
+        }
+        
+        _isLoading = false;
+    }
+    
+    private async Task DeleteOrder(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Tem certeza que deseja excluir este pedido?"))
+        {
+            var success = await OrderService.DeleteOrderAsync(id);
+            if (success)
+            {
+                await LoadOrders();
+            }
+        }
+    }
+    
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = null!;
+}

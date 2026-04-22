@@ -1,0 +1,113 @@
+@page "/register"
+@using GoodHamburger.Domain.DTOs
+@using GoodHamburger.Web.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Cadastro - Good Hamburger</PageTitle>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">🍔 Good Hamburger</h3>
+                <h5 class="text-center mb-4">Criar Conta</h5>
+                
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @_errorMessage
+                    </div>
+                }
+                
+                <EditForm Model="@_model" OnValidSubmit="HandleRegister">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <InputText id="email" class="form-control" @bind-Value="_model.Email" placeholder="seu@email.com" />
+                        <ValidationMessage For="@(() => _model.Email)" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Senha</label>
+                        <InputText id="password" type="password" class="form-control" @bind-Value="_model.Password" placeholder="Mínimo 6 caracteres" />
+                        <ValidationMessage For="@(() => _model.Password)" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirmar Senha</label>
+                        <InputText id="confirmPassword" type="password" class="form-control" @bind-Value="_model.ConfirmPassword" placeholder="Digite a senha novamente" />
+                        <ValidationMessage For="@(() => _model.ConfirmPassword)" />
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100" disabled="@_isLoading">
+                        @if (_isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Cadastrando...</span>
+                        }
+                        else
+                        {
+                            <span>Cadastrar</span>
+                        }
+                    </button>
+                </EditForm>
+                
+                <div class="text-center mt-3">
+                    <p class="mb-0">Já tem uma conta? <a href="/login">Faça login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel _model = new();
+    private bool _isLoading = false;
+    private string? _errorMessage;
+    
+    private async Task HandleRegister()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        
+        try
+        {
+            var dto = new RegisterDto(_model.Email, _model.Password, _model.ConfirmPassword);
+            var result = await AuthService.RegisterAsync(dto);
+            
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/orders");
+            }
+            else
+            {
+                _errorMessage = result.ErrorMessage ?? "Erro ao cadastrar. Verifique os dados e tente novamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Erro ao cadastrar: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+    
+    public class RegisterModel
+    {
+        [Required(ErrorMessage = "Email é obrigatório")]
+        [EmailAddress(ErrorMessage = "Email inválido")]
+        public string Email { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Senha é obrigatória")]
+        [MinLength(6, ErrorMessage = "A senha deve ter no mínimo 6 caracteres")]
+        public string Password { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Confirmação de senha é obrigatória")]
+        [Compare(nameof(Password), ErrorMessage = "As senhas não coincidem")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

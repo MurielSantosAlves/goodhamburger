@@ -1,0 +1,156 @@
+@page "/orders/details/{Id:int}"
+@attribute [Authorize]
+@inject IOrderApiService OrderService
+@inject NavigationManager Navigation
+
+<PageTitle>Detalhes do Pedido - Good Hamburger</PageTitle>
+
+<div class="container mt-4">
+    <div class="mb-4">
+        <h2>📋 Detalhes do Pedido</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/orders">Pedidos</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Pedido #@Id</li>
+            </ol>
+        </nav>
+    </div>
+    
+    @if (_isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Carregando...</p>
+        </div>
+    }
+    else if (_order == null)
+    {
+        <div class="alert alert-danger">
+            Pedido não encontrado
+        </div>
+        <a href="/orders" class="btn btn-secondary">Voltar para Pedidos</a>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Pedido #@_order.Id</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Data do Pedido</small>
+                            <p class="mb-0">@_order.OrderDate.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                        </div>
+                        
+                        <hr />
+                        
+                        <h6 class="mb-3">Itens do Pedido</h6>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th class="text-end">Preço</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in _order.Items)
+                                    {
+                                        <tr>
+                                            <td>@item.MenuItemName</td>
+                                            <td class="text-end">@item.Price.ToString("C2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <hr />
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>@_order.SubTotal.ToString("C2")</span>
+                        </div>
+                        
+                        @if (_order.DiscountPercentage > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-2 text-success">
+                                <span>Desconto (@((_order.DiscountPercentage * 100).ToString("0"))%):</span>
+                                <span>-@_order.DiscountAmount.ToString("C2")</span>
+                            </div>
+                        }
+                        
+                        <hr />
+                        
+                        <div class="d-flex justify-content-between fw-bold fs-5">
+                            <span>Total:</span>
+                            <span class="text-primary">@_order.Total.ToString("C2")</span>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex gap-2">
+                            <a href="/orders" class="btn btn-secondary">Voltar</a>
+                            <a href="/orders/edit/@_order.Id" class="btn btn-primary">Editar</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h6 class="card-title">Informações de Desconto</h6>
+                        
+                        @if (_order.DiscountPercentage > 0)
+                        {
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <strong>Desconto aplicado!</strong>
+                                <p class="mb-0 mt-2">
+                                    @if (_order.DiscountPercentage == 0.20m)
+                                    {
+                                        <span>Combo completo: Sanduíche + Batata + Refrigerante (20% de desconto)</span>
+                                    }
+                                    else if (_order.DiscountPercentage == 0.15m)
+                                    {
+                                        <span>Sanduíche + Refrigerante (15% de desconto)</span>
+                                    }
+                                    else if (_order.DiscountPercentage == 0.10m)
+                                    {
+                                        <span>Sanduíche + Batata (10% de desconto)</span>
+                                    }
+                                </p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle-fill"></i>
+                                <strong>Nenhum desconto aplicado</strong>
+                                <p class="mb-0 mt-2 small">
+                                    Combine sanduíche + acompanhamentos para ganhar desconto!
+                                </p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    
+    private OrderResponseDto? _order;
+    private bool _isLoading = true;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _order = await OrderService.GetOrderByIdAsync(Id);
+        _isLoading = false;
+    }
+}

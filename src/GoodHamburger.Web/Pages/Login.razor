@@ -1,0 +1,102 @@
+@page "/login"
+@using GoodHamburger.Domain.DTOs
+@using GoodHamburger.Web.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Login - Good Hamburger</PageTitle>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">🍔 Good Hamburger</h3>
+                <h5 class="text-center mb-4">Login</h5>
+                
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @_errorMessage
+                    </div>
+                }
+                
+                <EditForm Model="@_model" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <InputText id="email" class="form-control" @bind-Value="_model.Email" placeholder="seu@email.com" />
+                        <ValidationMessage For="@(() => _model.Email)" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Senha</label>
+                        <InputText id="password" type="password" class="form-control" @bind-Value="_model.Password" placeholder="********" />
+                        <ValidationMessage For="@(() => _model.Password)" />
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100" disabled="@_isLoading">
+                        @if (_isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Entrando...</span>
+                        }
+                        else
+                        {
+                            <span>Entrar</span>
+                        }
+                    </button>
+                </EditForm>
+                
+                <div class="text-center mt-3">
+                    <p class="mb-0">Não tem uma conta? <a href="/register">Cadastre-se</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel _model = new();
+    private bool _isLoading = false;
+    private string? _errorMessage;
+    
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        
+        try
+        {
+            var dto = new LoginDto(_model.Email, _model.Password);
+            var result = await AuthService.LoginAsync(dto);
+            
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/orders");
+            }
+            else
+            {
+                _errorMessage = result.ErrorMessage ?? "Email ou senha inválidos";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Erro ao fazer login: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+    
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Email é obrigatório")]
+        [EmailAddress(ErrorMessage = "Email inválido")]
+        public string Email { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Senha é obrigatória")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

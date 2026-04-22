@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: goodhamburger_db
+    environment:
+      POSTGRES_USER: goodhamburger
+      POSTGRES_PASSWORD: GoodHamburger@123
+      POSTGRES_DB: GoodHamburgerDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - goodhamburger_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goodhamburger -d GoodHamburgerDb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: src/GoodHamburger.Api/Dockerfile
+    container_name: goodhamburger_api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=GoodHamburgerDb;Username=goodhamburger;Password=GoodHamburger@123
+      - JwtSettings__SecretKey=ThisIsAVerySecureSecretKeyForGoodHamburgerApp123456789
+      - JwtSettings__Issuer=GoodHamburgerApi
+      - JwtSettings__Audience=GoodHamburgerClients
+      - JwtSettings__ExpirationMinutes=60
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - goodhamburger_network
+
+  web:
+    build:
+      context: .
+      dockerfile: src/GoodHamburger.Web/Dockerfile
+    container_name: goodhamburger_web
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ApiSettings__BaseUrl=http://api:8080
+    ports:
+      - "5001:8080"
+    volumes:
+      - dataprotection_keys:/app/keys
+    depends_on:
+      - api
+    networks:
+      - goodhamburger_network
+
+volumes:
+  postgres_data:
+  dataprotection_keys:
+
+networks:
+  goodhamburger_network:
+    driver: bridge

@@ -1,0 +1,89 @@
+﻿@page "/"
+
+<PageTitle>Good Hamburger - Sistema de Pedidos</PageTitle>
+
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h1 class="display-3">🍔 Good Hamburger</h1>
+        <p class="lead">Sistema de Gerenciamento de Pedidos</p>
+    </div>
+    
+    <AuthorizeView>
+        <Authorized>
+            <div class="row text-center">
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h2 class="card-title">📋</h2>
+                            <h5 class="card-title">Meus Pedidos</h5>
+                            <p class="card-text">Visualize e gerencie todos os seus pedidos</p>
+                            <a href="/orders" class="btn btn-primary">Ver Pedidos</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h2 class="card-title">➕</h2>
+                            <h5 class="card-title">Novo Pedido</h5>
+                            <p class="card-text">Faça um novo pedido e aproveite nossos descontos</p>
+                            <a href="/orders/create" class="btn btn-success">Fazer Pedido</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">💰 Descontos Disponíveis</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <strong>20% de desconto:</strong> Sanduíche + Batata + Refrigerante
+                        </li>
+                        <li class="list-group-item">
+                            <strong>15% de desconto:</strong> Sanduíche + Refrigerante
+                        </li>
+                        <li class="list-group-item">
+                            <strong>10% de desconto:</strong> Sanduíche + Batata
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="row text-center">
+                <div class="col-md-6 mb-4 offset-md-3">
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <h5 class="card-title">Bem-vindo!</h5>
+                            <p class="card-text">Entre ou cadastre-se para fazer seus pedidos</p>
+                            <div class="d-grid gap-2">
+                                <a href="/login" class="btn btn-primary">Entrar</a>
+                                <a href="/register" class="btn btn-outline-primary">Cadastrar</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">💰 Descontos Disponíveis</h5>
+                    <p class="card-text">Faça login para aproveitar nossos descontos especiais em combos!</p>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <strong>20% de desconto:</strong> Sanduíche + Batata + Refrigerante
+                        </li>
+                        <li class="list-group-item">
+                            <strong>15% de desconto:</strong> Sanduíche + Refrigerante
+                        </li>
+                        <li class="list-group-item">
+                            <strong>10% de desconto:</strong> Sanduíche + Batata
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+

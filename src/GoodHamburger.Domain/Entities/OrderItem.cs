@@ -1,0 +1,12 @@
+namespace GoodHamburger.Domain.Entities;
+
+public class OrderItem
+{
+    public int Id { get; set; }
+    public int OrderId { get; set; }
+    public int MenuItemId { get; set; }
+    public decimal Price { get; set; } // Preço no momento do pedido
+    
+    public Order Order { get; set; } = null!;
+    public MenuItem MenuItem { get; set; } = null!;
+}
