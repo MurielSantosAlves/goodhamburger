@@ -63,6 +63,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<RegisterDtoValidator>();
 
 // injeção de dependências dos serviços
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IDiscountRuleRepository, DiscountRuleRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IDiscountCalculator, DiscountCalculator>();
