@@ -1,0 +1,381 @@
+@page "/discount-rules"
+@using GoodHamburger.Domain.DTOs
+@using GoodHamburger.Web.Services
+@inject IDiscountRuleApiService DiscountRuleService
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+<PageTitle>Configuração de Descontos - Good Hamburger</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>💰 Configuração de Regras de Desconto</h2>
+        <button class="btn btn-success" @onclick="ShowCreateForm">
+            <i class="bi bi-plus-circle"></i> Nova Regra
+        </button>
+    </div>
+
+    @if (showMessage)
+    {
+        <div class="alert @alertClass alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => showMessage = false"></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center p-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-3">Carregando regras de desconto...</p>
+        </div>
+    }
+    else if (showForm)
+    {
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">@(isEditing ? "Editar Regra" : "Nova Regra de Desconto")</h5>
+            </div>
+            <div class="card-body">
+                <EditForm Model="@currentRule" OnValidSubmit="SaveRule">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nome da Regra</label>
+                            <InputText class="form-control" @bind-Value="currentRule.Name" placeholder="Ex: Combo Completo" />
+                            <ValidationMessage For="@(() => currentRule.Name)" />
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Percentual de Desconto (%)</label>
+                            <InputNumber class="form-control" @bind-Value="discountPercentageInput" 
+                                       placeholder="Ex: 20" min="0" max="100" step="0.01" />
+                            <small class="form-text text-muted">Digite o percentual de 0 a 100</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <InputTextArea class="form-control" @bind-Value="currentRule.Description" 
+                                     rows="2" placeholder="Descreva as condições do desconto" />
+                        <ValidationMessage For="@(() => currentRule.Description)" />
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Prioridade</label>
+                            <InputNumber class="form-control" @bind-Value="currentRule.Priority" min="1" />
+                            <small class="form-text text-muted">Menor número = maior prioridade</small>
+                            <ValidationMessage For="@(() => currentRule.Priority)" />
+                        </div>
+                        
+                        <div class="col-md-9">
+                            <label class="form-label d-block">Requisitos</label>
+                            <div class="form-check form-check-inline">
+                                <InputCheckbox class="form-check-input" @bind-Value="currentRule.RequiresSandwich" id="reqSandwich" />
+                                <label class="form-check-label" for="reqSandwich">🍔 Sanduíche</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <InputCheckbox class="form-check-input" @bind-Value="currentRule.RequiresSideDish" id="reqSideDish" />
+                                <label class="form-check-label" for="reqSideDish">🍟 Batata</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <InputCheckbox class="form-check-input" @bind-Value="currentRule.RequiresDrink" id="reqDrink" />
+                                <label class="form-check-label" for="reqDrink">🥤 Bebida</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <InputCheckbox class="form-check-input" @bind-Value="currentRule.IsActive" id="isActive" />
+                            <label class="form-check-label" for="isActive">
+                                <strong>Regra Ativa</strong> - Aplicar esta regra aos pedidos
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            @(isEditing ? "Atualizar" : "Criar") Regra
+                        </button>
+                        <button type="button" class="btn btn-secondary" @onclick="CancelForm">Cancelar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (!showForm && rules.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Prioridade</th>
+                                <th>Nome</th>
+                                <th>Descrição</th>
+                                <th>Desconto</th>
+                                <th>Requisitos</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var rule in rules.OrderBy(r => r.Priority))
+                            {
+                                <tr>
+                                    <td><span class="badge bg-secondary">@rule.Priority</span></td>
+                                    <td><strong>@rule.Name</strong></td>
+                                    <td>@rule.Description</td>
+                                    <td><span class="badge bg-success">@((rule.DiscountPercentage * 100).ToString("0.##"))%</span></td>
+                                    <td>
+                                        @if (rule.RequiresSandwich) { <span class="badge bg-info me-1">🍔</span> }
+                                        @if (rule.RequiresSideDish) { <span class="badge bg-info me-1">🍟</span> }
+                                        @if (rule.RequiresDrink) { <span class="badge bg-info me-1">🥤</span> }
+                                    </td>
+                                    <td>
+                                        @if (rule.IsActive)
+                                        {
+                                            <span class="badge bg-success">Ativa</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inativa</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary me-1" @onclick="() => EditRule(rule)">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => ConfirmDelete(rule)">
+                                            <i class="bi bi-trash"></i> Excluir
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!showForm && !isLoading)
+    {
+        <div class="alert alert-info">
+            <h5>Nenhuma regra cadastrada</h5>
+            <p>Clique em "Nova Regra" para criar sua primeira regra de desconto.</p>
+        </div>
+    }
+</div>
+
+@* Modal de Confirmação de Exclusão *@
+@if (showDeleteConfirm)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" @onclick="() => showDeleteConfirm = false"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir a regra <strong>@ruleToDelete?.Name</strong>?</p>
+                    <p class="text-muted">Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showDeleteConfirm = false">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteRule">
+                        @if (isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<DiscountRuleDto> rules = new();
+    private CreateDiscountRuleDto currentRule = new();
+    private DiscountRuleDto? ruleToDelete;
+    private int editingRuleId = 0;
+    
+    private bool isLoading = true;
+    private bool showForm = false;
+    private bool isEditing = false;
+    private bool isSaving = false;
+    private bool showDeleteConfirm = false;
+    private bool isDeleting = false;
+    
+    private bool showMessage = false;
+    private string message = "";
+    private string alertClass = "alert-success";
+    
+    private decimal discountPercentageInput = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRules();
+    }
+
+    private async Task LoadRules()
+    {
+        isLoading = true;
+        rules = await DiscountRuleService.GetAllAsync();
+        isLoading = false;
+    }
+
+    private void ShowCreateForm()
+    {
+        currentRule = new CreateDiscountRuleDto
+        {
+            IsActive = true,
+            Priority = 1,
+            DiscountPercentage = 0
+        };
+        discountPercentageInput = 0;
+        isEditing = false;
+        showForm = true;
+    }
+
+    private void EditRule(DiscountRuleDto rule)
+    {
+        editingRuleId = rule.Id;
+        currentRule = new CreateDiscountRuleDto
+        {
+            Name = rule.Name,
+            Description = rule.Description,
+            DiscountPercentage = rule.DiscountPercentage,
+            RequiresSandwich = rule.RequiresSandwich,
+            RequiresSideDish = rule.RequiresSideDish,
+            RequiresDrink = rule.RequiresDrink,
+            IsActive = rule.IsActive,
+            Priority = rule.Priority
+        };
+        discountPercentageInput = rule.DiscountPercentage * 100;
+        isEditing = true;
+        showForm = true;
+    }
+
+    private async Task SaveRule()
+    {
+        isSaving = true;
+        
+        // Converter percentual de 0-100 para 0-1
+        currentRule.DiscountPercentage = discountPercentageInput / 100m;
+        
+        try
+        {
+            if (isEditing)
+            {
+                var updateDto = new UpdateDiscountRuleDto
+                {
+                    Name = currentRule.Name,
+                    Description = currentRule.Description,
+                    DiscountPercentage = currentRule.DiscountPercentage,
+                    RequiresSandwich = currentRule.RequiresSandwich,
+                    RequiresSideDish = currentRule.RequiresSideDish,
+                    RequiresDrink = currentRule.RequiresDrink,
+                    IsActive = currentRule.IsActive,
+                    Priority = currentRule.Priority
+                };
+                
+                var result = await DiscountRuleService.UpdateAsync(editingRuleId, updateDto);
+                if (result != null)
+                {
+                    ShowSuccessMessage("Regra atualizada com sucesso!");
+                    await LoadRules();
+                    CancelForm();
+                }
+                else
+                {
+                    ShowErrorMessage("Erro ao atualizar a regra.");
+                }
+            }
+            else
+            {
+                var result = await DiscountRuleService.CreateAsync(currentRule);
+                if (result != null)
+                {
+                    ShowSuccessMessage("Regra criada com sucesso!");
+                    await LoadRules();
+                    CancelForm();
+                }
+                else
+                {
+                    ShowErrorMessage("Erro ao criar a regra.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowErrorMessage($"Erro: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        isEditing = false;
+        editingRuleId = 0;
+    }
+
+    private void ConfirmDelete(DiscountRuleDto rule)
+    {
+        ruleToDelete = rule;
+        showDeleteConfirm = true;
+    }
+
+    private async Task DeleteRule()
+    {
+        if (ruleToDelete == null) return;
+        
+        isDeleting = true;
+        var success = await DiscountRuleService.DeleteAsync(ruleToDelete.Id);
+        
+        if (success)
+        {
+            ShowSuccessMessage("Regra excluída com sucesso!");
+            await LoadRules();
+        }
+        else
+        {
+            ShowErrorMessage("Erro ao excluir a regra.");
+        }
+        
+        isDeleting = false;
+        showDeleteConfirm = false;
+        ruleToDelete = null;
+    }
+
+    private void ShowSuccessMessage(string msg)
+    {
+        message = msg;
+        alertClass = "alert-success";
+        showMessage = true;
+    }
+
+    private void ShowErrorMessage(string msg)
+    {
+        message = msg;
+        alertClass = "alert-danger";
+        showMessage = true;
+    }
+}

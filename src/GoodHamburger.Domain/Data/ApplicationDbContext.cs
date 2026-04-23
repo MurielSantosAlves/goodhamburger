@@ -14,6 +14,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<DiscountRule> DiscountRules => Set<DiscountRule>();
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -71,6 +72,60 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             new MenuItem { Id = 3, Name = "X Bacon", Price = 7.00m, Type = GoodHamburger.Domain.Enums.MenuItemType.Sandwich },
             new MenuItem { Id = 4, Name = "Batata frita", Price = 2.00m, Type = GoodHamburger.Domain.Enums.MenuItemType.SideDish },
             new MenuItem { Id = 5, Name = "Refrigerante", Price = 2.50m, Type = GoodHamburger.Domain.Enums.MenuItemType.Drink }
+        );
+        
+        // Configuração de DiscountRule
+        modelBuilder.Entity<DiscountRule>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.DiscountPercentage).HasPrecision(5, 4);
+            entity.Property(e => e.IsActive).IsRequired();
+            entity.Property(e => e.Priority).IsRequired();
+        });
+        
+        // Dados iniciais de regras de desconto
+        modelBuilder.Entity<DiscountRule>().HasData(
+            new DiscountRule 
+            { 
+                Id = 1, 
+                Name = "Combo Completo", 
+                Description = "Sanduíche + Batata + Refrigerante", 
+                DiscountPercentage = 0.20m, 
+                RequiresSandwich = true, 
+                RequiresSideDish = true, 
+                RequiresDrink = true, 
+                IsActive = true, 
+                Priority = 1,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new DiscountRule 
+            { 
+                Id = 2, 
+                Name = "Combo Bebida", 
+                Description = "Sanduíche + Refrigerante", 
+                DiscountPercentage = 0.15m, 
+                RequiresSandwich = true, 
+                RequiresSideDish = false, 
+                RequiresDrink = true, 
+                IsActive = true, 
+                Priority = 2,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new DiscountRule 
+            { 
+                Id = 3, 
+                Name = "Combo Batata", 
+                Description = "Sanduíche + Batata Frita", 
+                DiscountPercentage = 0.10m, 
+                RequiresSandwich = true, 
+                RequiresSideDish = true, 
+                RequiresDrink = false, 
+                IsActive = true, 
+                Priority = 3,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            }
         );
     }
 }

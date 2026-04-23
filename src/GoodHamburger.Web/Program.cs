@@ -44,6 +44,13 @@ builder.Services.AddHttpClient<IOrderApiService, OrderApiService>(client =>
     client.BaseAddress = new Uri(apiBaseUrl);
 });
 
+// HttpClient para API de regras de desconto
+builder.Services.AddHttpClient<IDiscountRuleApiService, DiscountRuleApiService>(client =>
+{
+    var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5000";
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
