@@ -68,10 +68,6 @@ src/
 
 `SubTotal`, `DiscountAmount` e `Total` não são guardados no banco. São calculados toda vez. Por quê? Porque se mudar as regras de desconto, os valores ficam sempre corretos. É um pouco menos performático, mas garante consistência.
 
-### Strategy Pattern pros Descontos
-
-O `DiscountCalculator` usa Strategy Pattern. Facilita adicionar novas regras de desconto sem mexer nas entidades. Só criar um novo calculador e trocar no DI.
-
 ## 🧪 Testes
 
 Tem testes unitários cobrindo as principais regras:
